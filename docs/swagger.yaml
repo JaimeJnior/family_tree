@@ -1,0 +1,288 @@
+basePath: /
+definitions:
+  server.DeleteParentRelationshipRequest:
+    properties:
+      childID:
+        type: string
+      parentID:
+        type: string
+    type: object
+  server.DeleteSpouseRelationshipRequest:
+    properties:
+      firstSpouseID:
+        type: string
+      secondSpouseID:
+        type: string
+    type: object
+  server.FamilyTree:
+    properties:
+      people:
+        items:
+          $ref: '#/definitions/server.FamilyTreeNode'
+        type: array
+    type: object
+  server.FamilyTreeNode:
+    properties:
+      personID:
+        $ref: '#/definitions/server.Person'
+      relations:
+        items:
+          $ref: '#/definitions/server.FamilyTreeRelation'
+        type: array
+    type: object
+  server.FamilyTreeRelation:
+    properties:
+      relation:
+        type: string
+      relativeID:
+        type: string
+    type: object
+  server.GetBaconsNumberResponse:
+    properties:
+      pathLength:
+        type: integer
+    type: object
+  server.GetPeopleResponse:
+    properties:
+      content:
+        items:
+          $ref: '#/definitions/server.Person'
+        type: array
+      metadata:
+        $ref: '#/definitions/server.PaginationResponseMetadata'
+    type: object
+  server.PaginationResponseMetadata:
+    properties:
+      page:
+        type: integer
+      totalItens:
+        type: integer
+    type: object
+  server.Person:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  server.PostCreateParentRelationshipRequest:
+    properties:
+      childID:
+        type: string
+      parentID:
+        type: string
+    type: object
+  server.PostCreateSpouseRelationshipRequest:
+    properties:
+      firstSpouseID:
+        type: string
+      secondSpouseID:
+        type: string
+    type: object
+  server.PostPersonRequest:
+    properties:
+      name:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Essa é uma api para gerenciar pessoas e relações de parentesco
+  termsOfService: http://swagger.io/terms/
+  title: Family Tree API
+  version: "1.0"
+paths:
+  /person:
+    get:
+      description: Busca todas as pessoas salvas no banco
+      parameters:
+      - description: Página que se deseja buscar onde a página 0 é a primeira página
+        in: query
+        name: page
+        type: integer
+      - description: Tamanho da página
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.GetPeopleResponse'
+      summary: Busca todas as pessoas salvas no banco
+      tags:
+      - person
+    post:
+      description: Cria uma pessoa dado um body com o nome desejado
+      parameters:
+      - description: Nome da pessoa que deseja-se criar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.PostPersonRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/server.Person'
+      summary: Cria uma pessoa dado um body com o nome desejado
+      tags:
+      - person
+  /person/{personID}:
+    get:
+      description: |-
+        Busca detalhes de uma pessoa pelo seu id
+        Retorna 404 caso não existe
+      parameters:
+      - description: ID da pessoa no formato uuid (XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)
+        in: path
+        name: personID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.Person'
+      summary: Busca detalhes de uma pessoa pelo seu id
+      tags:
+      - person
+  /person/{personID}/bacons/{targetID}:
+    get:
+      description: Busca todas as pessoas salvas no banco
+      parameters:
+      - description: ID da pessoa no formato uuid (XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)
+        in: path
+        name: personID
+        required: true
+        type: string
+      - description: ID da pessoa alvo no formato uuid (XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)
+        in: path
+        name: targetID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.GetBaconsNumberResponse'
+      summary: Busca o número de Bacon entre duas pessoas
+      tags:
+      - person
+  /person/{personID}/tree:
+    get:
+      description: |-
+        Busca a árvore genealógica de uma pessoa, reduzindo relações redundantes
+        Resultado pode ser entregue tanto de json, xml e em binário
+        A relação de PARENT indica que a pessoa é pai da pessoa indicada
+        A relação de SPOUSE indica que a pesoa possui uma relação de casamento com a pessoa indica
+        Lembrando que para reduzir redundância a relação só aparece em uma das pessoas
+        Na árvore está incluso:
+        a) Todos os seus ancestrais
+        b) Seus filhos
+        c) Seus sobrinhos
+        d) Relações de esposo entre ancestrais, não incluindo se estiver a relação de esposo com alguém sem relação sanguínea
+      parameters:
+      - description: ID da pessoa no formato uuid (XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)
+        in: path
+        name: personID
+        required: true
+        type: string
+      produces:
+      - application/json
+      - application/xml
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.FamilyTree'
+      summary: Busca a árvore genealógica de uma pessoa
+      tags:
+      - relationship
+  /person/parent:
+    delete:
+      description: |-
+        Remove uma relação de parentesco entre pai e filho
+        Não é permitido a remoção da relação se os pais do filho estiverem em uma relação de esposo e este for o único filho do casal
+      parameters:
+      - description: Relação que deseja-se remover
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.DeleteParentRelationshipRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      summary: Remove uma relação de parentesco entre pai e filho
+      tags:
+      - relationship
+    post:
+      description: |-
+        Cria uma relação de parentesco entre pai e filho
+        Não é permitido criação de relação incestuosa
+      parameters:
+      - description: Relação que deseja-se criar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.PostCreateParentRelationshipRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+      summary: Cria uma relação de parentesco entre pai e filho
+      tags:
+      - relationship
+  /person/spouse:
+    delete:
+      description: Remove uma relação de esposo entre duas pessoas
+      parameters:
+      - description: Relação que deseja-se remover
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.DeleteSpouseRelationshipRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      summary: Remove uma relação de esposo entre duas pessoas
+      tags:
+      - relationship
+    post:
+      description: |-
+        Cria uma relação de esposo entre duas pessoas
+        Só é possível criar relação entre duas pessoas se elas tiverem um filho
+      parameters:
+      - description: Relação que deseja-se criar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.PostCreateSpouseRelationshipRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+      summary: Cria uma relação de esposo entre duas pessoas
+      tags:
+      - relationship
+swagger: "2.0"

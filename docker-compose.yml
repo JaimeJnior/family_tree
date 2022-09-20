@@ -1,0 +1,43 @@
+version: "3.2"
+services:
+  neo4j:
+    image: neo4j:latest
+    container_name: 'devneo4j'
+    ports:
+      - 7474:7474
+      - 7687:7687
+    restart: on-failure
+    networks:
+        - neo4j_go_net
+    command: neo4j
+    healthcheck:
+        test: wget http://localhost:7474 || exit 1
+        interval: 1s
+        timeout: 10s
+        retries: 20
+        start_period: 3s
+    environment:
+      NEO4J_AUTH: 'neo4j/sandbox'
+  family_tree:
+    container_name: 'family_tree_go'
+    build: './'
+    ports:
+      - '8080:8080'
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+        - neo4j_go_net
+    environment:
+      GOGM_USERNAME: neo4j
+      GOGM_PASSWORD: sandbox
+      GOGM_HOST: neo4j
+      
+
+
+networks:
+  neo4j_go_net:
+    driver: bridge
+
+volumes:
+  dgraph:
